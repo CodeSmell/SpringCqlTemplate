@@ -10,6 +10,7 @@ import org.springframework.data.cassandra.core.cql.PreparedStatementCreator;
 import org.springframework.data.cassandra.core.cql.ResultSetExtractor;
 import org.springframework.data.cassandra.core.cql.RowMapper;
 import org.springframework.data.cassandra.core.cql.SimplePreparedStatementCreator;
+import org.springframework.data.cassandra.core.cql.support.CachedPreparedStatementCreator;
 import org.springframework.data.cassandra.core.cql.support.PreparedStatementCache;
 
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.List;
  * Two open issues and PRs regarding CQL template in Spring Data Cassandra
  * https://github.com/spring-projects/spring-data-cassandra/pull/129
  * https://github.com/spring-projects/spring-data-cassandra/pull/131
- *
+ * https://github.com/spring-projects/spring-data-cassandra/pull/133
  */
 public class EnhancedCqlTemplate extends CqlTemplate implements EnhancedCqlOperations {
 
@@ -40,12 +41,16 @@ public class EnhancedCqlTemplate extends CqlTemplate implements EnhancedCqlOpera
         if (preparedStatementCache == null) {
             return new SimplePreparedStatementCreator(cql);
         } else {
-            return org.springframework.data.cassandra.core.cql.support.CachedPreparedStatementCreator.of(preparedStatementCache, cql);
+            return CachedPreparedStatementCreator.of(preparedStatementCache, cql);
         }
     }
 
     protected PreparedStatementCreator newPreparedStatementCreator(RegularStatement regStatement) {
-        return this.newPreparedStatementCreator(regStatement.getQueryString());
+        if (preparedStatementCache == null) {
+            return new SimpleRegularStatementPreparedStatementCreator(regStatement);
+        } else {
+            return CachedPreparedStatementCreator.of(preparedStatementCache, regStatement);
+        }
     }
 
     public void setPreparedStatementCache(PreparedStatementCache psCache) {
